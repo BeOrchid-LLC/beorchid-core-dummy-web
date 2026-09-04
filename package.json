@@ -1,0 +1,38 @@
+{
+  "name": "@beorchid/core-dummy-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Independent Next.js acceptance harness for BeOrchid Core",
+  "engines": {
+    "node": ">=22.0.0 <23"
+  },
+  "workspaces": [
+    "packages/core-sdk"
+  ],
+  "scripts": {
+    "dev": "next dev -p 3200",
+    "build": "next build --webpack",
+    "start": "next start -p 3200",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test --test-force-exit tests/*.test.ts",
+    "db:migrate": "tsx scripts/migrate.ts"
+  },
+  "dependencies": {
+    "@beorchid/core-sdk": "file:packages/core-sdk",
+    "@clerk/nextjs": "^6.9.6",
+    "next": "^16.3.3",
+    "pg": "^8.13.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@playwright/test": "^1.52.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
