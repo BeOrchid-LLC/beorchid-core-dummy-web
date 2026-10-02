@@ -11,12 +11,12 @@ WORKDIR /app
 FROM base AS deps
 
 # The SDK is a Git submodule and is a local npm workspace dependency.
-COPY package.json ./
+COPY package.json package-lock.json ./
 COPY packages/core-sdk/package.json packages/core-sdk/package-lock.json ./packages/core-sdk/
 COPY packages/core-sdk/src ./packages/core-sdk/src
 COPY packages/core-sdk/tsconfig.json packages/core-sdk/tsconfig.build.json ./packages/core-sdk/
 
-RUN npm install --include=dev
+RUN npm ci --include=dev
 
 FROM base AS builder
 
@@ -40,6 +40,9 @@ RUN addgroup --system --gid 1001 nodejs \
 
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/migrations ./migrations
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 
 USER nextjs
 

@@ -46,9 +46,18 @@ Coolify. Keep `CORE_API_KEY`, `CLERK_SECRET_KEY`, and `DATABASE_URL` server-only
 only `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is intended for the browser. Do not
 put secrets in Docker build arguments or commit them to the repository.
 
-Run `npm run db:migrate` separately against the staging database before the
-first acceptance run. The application container does not run migrations during
-startup.
+Run `npm run db:migrate` as a one-shot command against the staging database
+before the first acceptance run. The production image includes the migration
+runner and SQL, but application startup never mutates the database automatically.
+In Coolify, open the deployed application's terminal and run:
+
+```bash
+npm run db:migrate
+```
+
+The Core provisioning command must create the `core_dummy_web` schema first.
+The app migration creates only its table and index, so the runtime database
+role does not need database-level schema creation privileges.
 
 ## Live staging setup
 
@@ -65,6 +74,27 @@ npm run test
 npm run build
 npm run db:migrate
 ```
+
+## Core onboarding console
+
+The protected `/admin` page wraps the Core administration calls needed for the
+acceptance setup. It can create roles, attach permissions scoped to this app,
+look up projected Clerk memberships, and assign an app role. Clerk user and
+organization creation remains in Clerk Dashboard.
+
+Configure these server-only values in Coolify:
+
+```text
+CORE_ADMIN_API_KEY=<Core operator credential>
+CORE_APP_ID=<the UUID printed when core_dummy_web was registered>
+CORE_ADMIN_CLERK_USER_IDS=<comma-separated Clerk user IDs allowed to administer>
+```
+
+The console is fail-closed: it requires live Clerk authentication, an explicit
+user-ID allowlist, same-origin mutation requests, and server-side authorization
+on every route. The browser never receives the Core admin key, app API key,
+Clerk secret, or a database URL. Permission and assignment requests always use
+the configured `CORE_APP_ID`; the browser cannot target another app.
 
 For browser acceptance, first create a Playwright storage state by signing in
 manually as one dedicated test user. Then run the role-specific suite:
@@ -86,3 +116,6 @@ Auth state files and reports are ignored and must not be committed.
 - Every query is filtered by the organization ID returned by Core.
 - The app queries only `core_dummy_web.records`; it never queries Core tables.
 - Cross-origin mutations are rejected when an Origin header is present.
+- Every admin route requires a live Clerk session and the configured user-ID allowlist.
+- Admin mutations reject missing and cross-origin Origin headers.
+- Core administrative credentials are read only by server route handlers.

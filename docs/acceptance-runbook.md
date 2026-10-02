@@ -16,26 +16,34 @@ Save the generated Core API key immediately. It is shown once. The script uses
 `local_dev_only` as the initial database password, so rotate it before staging
 use and place the resulting app-role connection string in the local `.env.local`.
 
-Run the app migration using the app role:
+Run the app migration from the deployed dummy-app container using the app role:
 
 ```bash
 npm run db:migrate
 ```
 
-The app role must be able to use `core_dummy_web.records` and must not have
-schema or table privileges on `core`.
+The Core registration step must already have created the schema. The app
+migration creates only `core_dummy_web.records` and its index; it does not need
+database-level `CREATE`. The app role must be able to use its own table and
+must not have schema or table privileges on `core`.
 
 ## 2. Configure permissions and test identities
 
-Using Core's staging admin API:
+Configure the deployed dummy app with `CORE_ADMIN_API_KEY`, `CORE_APP_ID`, and
+an explicit `CORE_ADMIN_CLERK_USER_IDS` allowlist. Sign in as an allowlisted
+operator and open `/admin`. Use the four forms in order:
 
-1. Create app-scoped permissions `dummy:records:read`,
-   `dummy:records:create`, and `dummy:records:delete`.
-2. Create or reuse dedicated viewer, editor, and owner roles.
-3. Attach read to viewer; read/create to editor; all three to owner.
-4. Create a dedicated Clerk staging organization and three test users.
-5. Reconcile their Clerk identities into Core.
-6. Assign the corresponding app role to each membership.
+1. Create or update `dummy_viewer`, `dummy_editor`, and `dummy_owner` roles.
+2. Attach app-scoped permissions `dummy:records:read`,
+   `dummy:records:create`, and `dummy:records:delete` using this matrix:
+   viewer = read; editor = read/create; owner = read/create/delete.
+3. Look up each projected user by Clerk user ID.
+4. Assign the viewer and owner app roles to their Core membership IDs. Leave
+   the no-access member without a `core_dummy_web` app role.
+
+Create the dedicated staging organization and its users in Clerk Dashboard
+before using the membership lookup. Wait for webhook/reconciliation projection
+if Core has not received them yet.
 
 Record IDs and email addresses in private evidence only. Do not put them in the
 repository or in screenshots shared outside the project.
@@ -57,6 +65,9 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 CORE_API_URL=https://staging-core.example.com
 CORE_API_KEY=...
+CORE_ADMIN_API_KEY=...
+CORE_APP_ID=<core_dummy_web app UUID>
+CORE_ADMIN_CLERK_USER_IDS=<allowlisted Clerk user IDs>
 DATABASE_URL=postgres://core_dummy_web_rw:<rotated-secret>@<staging-db>/beorchid_core
 ```
 
@@ -64,8 +75,10 @@ Start the app and confirm the home page says **LIVE ACCEPTANCE MODE**.
 
 ## 4. Execute the acceptance matrix
 
-Run the Playwright suite separately with owner, viewer, and no-access storage
-states. Also perform these manual checks:
+Run the Playwright suite separately with owner, viewer, no-access, and unlinked
+storage states. Treat the no-access identity as the cross-app isolation case by
+granting it a permission for another app but no `core_dummy_web` app role. Also
+perform these manual checks:
 
 - Signed-out page and API behavior return a sign-in prompt/`401`.
 - A newly signed-in but unreconciled user shows the unlinked state and cannot

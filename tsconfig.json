@@ -9,6 +9,7 @@
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "allowJs": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "incremental": true,

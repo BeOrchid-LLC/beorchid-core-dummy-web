@@ -5,11 +5,20 @@ function clerkConfigured(): boolean {
   return typeof key === 'string' && key.startsWith('pk_');
 }
 
-const PUBLIC_ROUTES = ['/', '/sign-in', '/sign-up', '/api/dev-session'];
-type ClerkMiddleware = (req: NextRequest, event: NextFetchEvent) => Promise<Response> | Response;
-let cached: ClerkMiddleware | null = null;
+// API handlers perform their own authorization so they can return stable JSON
+// 401/403 responses instead of Clerk's page-oriented redirect behavior.
+const PUBLIC_ROUTES = [
+  '/',
+  '/sign-in',
+  '/sign-up',
+  '/api/dev-session',
+  '/api/records',
+  '/api/admin/core',
+];
+type ClerkProxy = (req: NextRequest, event: NextFetchEvent) => Promise<Response> | Response;
+let cached: ClerkProxy | null = null;
 
-async function clerkHandler(): Promise<ClerkMiddleware> {
+async function clerkHandler(): Promise<ClerkProxy> {
   if (cached) return cached;
   const { clerkMiddleware, createRouteMatcher } = await import('@clerk/nextjs/server');
   const isPublic = createRouteMatcher(
@@ -17,11 +26,11 @@ async function clerkHandler(): Promise<ClerkMiddleware> {
   );
   cached = clerkMiddleware(async (auth, request) => {
     if (!isPublic(request)) await auth.protect();
-  }) as ClerkMiddleware;
+  }) as ClerkProxy;
   return cached;
 }
 
-export default async function middleware(request: NextRequest, event: NextFetchEvent) {
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   if (!clerkConfigured()) return NextResponse.next();
   return (await clerkHandler())(request, event);
 }

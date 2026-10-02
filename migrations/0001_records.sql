@@ -1,5 +1,3 @@
-CREATE SCHEMA IF NOT EXISTS core_dummy_web;
-
 CREATE TABLE IF NOT EXISTS core_dummy_web.records (
   id uuid PRIMARY KEY,
   organization_id uuid NOT NULL,

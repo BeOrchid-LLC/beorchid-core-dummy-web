@@ -3,7 +3,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
-const databaseUrl = process.env['DATABASE_URL'];
+const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is required to run db:migrate.');
 
 const here = dirname(fileURLToPath(import.meta.url));

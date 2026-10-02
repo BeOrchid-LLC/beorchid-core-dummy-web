@@ -45,6 +45,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
               <Link href="/">Home</Link>
               <Link href="/dashboard">Dashboard</Link>
               <Link href="/records">Records</Link>
+              <Link href="/admin">Admin</Link>
               <span className="spacer" />
               <AccountControls />
             </div>
