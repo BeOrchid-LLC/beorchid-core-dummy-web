@@ -48,7 +48,15 @@ textarea { resize: vertical; }
 .form-grid .full, .form-grid .banner, .form-grid .result { grid-column: 1 / -1; }
 .form-grid button { justify-self: start; }
 .field-error { color: var(--deny); font-size: 0.8rem; }
-.form-error { flex-basis: 100%; color: var(--deny); font-size: 0.85rem; margin: 0; }
+.acceptance-form { margin: 0 0 1.5rem; padding: 1rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+.acceptance-form > label { display: block; color: var(--ink-soft); font-size: 0.88rem; margin-bottom: 0.35rem; }
+.acceptance-form input { flex: 1 1 20rem; }
+.form-feedback { flex-basis: 100%; font-size: 0.85rem; margin: 0; }
+.form-feedback.error { color: var(--deny); }
+.form-feedback.success { color: var(--ok); }
+.inline-feedback { display: inline-block; margin-left: 0.5rem; font-size: 0.8rem; }
+.inline-feedback.error { color: var(--deny); }
+.inline-feedback.success { color: var(--ok); }
 .result { margin: 0; max-height: 18rem; }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }

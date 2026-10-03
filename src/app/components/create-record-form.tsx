@@ -7,7 +7,13 @@ type ApiError = {
   error?: string;
 };
 
-async function readError(response: Response): Promise<string> {
+type Feedback = {
+  kind: 'success' | 'error';
+  status: number;
+  message: string;
+};
+
+async function readResponseMessage(response: Response, fallback: string): Promise<string> {
   const responseText = await response.text();
   if (responseText) {
     try {
@@ -17,20 +23,20 @@ async function readError(response: Response): Promise<string> {
       // Fall through to a status-based message for non-JSON responses.
     }
   }
-  return `Create failed (${response.status} ${response.statusText || 'request error'}).`;
+  return fallback;
 }
 
 export function CreateRecordForm() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
+    setFeedback(null);
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError('Enter a record name.');
+      setFeedback({ kind: 'error', status: 400, message: 'Enter a record name.' });
       return;
     }
 
@@ -44,10 +50,16 @@ export function CreateRecordForm() {
         },
         body: JSON.stringify({ name: trimmedName }),
       });
-      if (!response.ok) throw new Error(await readError(response));
-      window.location.reload();
+      const message = await readResponseMessage(response, `Create failed (${response.statusText || 'request error'}).`);
+      if (!response.ok) {
+        setFeedback({ kind: 'error', status: response.status, message });
+        setBusy(false);
+        return;
+      }
+      setFeedback({ kind: 'success', status: response.status, message: 'Record created. Refreshing the list…' });
+      window.setTimeout(() => window.location.reload(), 350);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not create the record. Try again.');
+      setFeedback({ kind: 'error', status: 0, message: cause instanceof Error ? cause.message : 'Could not reach the app. Try again.' });
       setBusy(false);
     }
   }
@@ -67,7 +79,7 @@ export function CreateRecordForm() {
         required
       />
       <button type="submit" disabled={busy}>{busy ? 'Creating…' : 'Create record'}</button>
-      {error && <p className="form-error" role="alert">{error}</p>}
+      {feedback && <p className={`form-feedback ${feedback.kind}`} role={feedback.kind === 'error' ? 'alert' : 'status'}><strong>{feedback.status ? `${feedback.status} ` : ''}{feedback.kind === 'error' ? 'Request failed' : 'Created'}</strong> — {feedback.message}</p>}
     </form>
   );
 }

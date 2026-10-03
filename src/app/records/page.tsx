@@ -3,6 +3,7 @@ import { currentContext, safeDependencyMessage } from '@/lib/core';
 import { canCreate, canDelete, canRead, PERMISSIONS } from '@/lib/authorization';
 import { listRecords } from '@/lib/db';
 import { CreateRecordForm } from '@/app/components/create-record-form';
+import { DeleteRecordForm } from '@/app/components/delete-record-form';
 import { DeleteRecordButton } from '@/app/components/delete-record-button';
 
 export default async function RecordsPage() {
@@ -13,17 +14,22 @@ export default async function RecordsPage() {
   const { context } = result;
   if (!context.organization) return <><h1>Dummy Records</h1><div className="banner dev">Select or create a Clerk organization before testing organization-scoped records.</div></>;
   const read = canRead(context); const create = canCreate(context); const remove = canDelete(context);
-  if (!read) return <><h1>Dummy Records</h1><div className="banner error">Access denied. This app requires <code>{PERMISSIONS.read}</code>.</div><p>The denial comes from the permission set resolved by Core for this membership and this app.</p></>;
 
   let records: Awaited<ReturnType<typeof listRecords>> = [];
   let dbUnavailable = false;
-  try { records = await listRecords(context.organization.id); } catch { dbUnavailable = true; }
+  if (read) {
+    try { records = await listRecords(context.organization.id); } catch { dbUnavailable = true; }
+  }
   return <>
     <h1>Dummy Records</h1>
     <p className="lede">Records are stored in <code>core_dummy_web</code> and filtered by the organization ID returned by Core.</p>
     <div className="row" style={{ marginBottom: '1.5rem' }}><span className="chip granted">{PERMISSIONS.read}</span><span className={create ? 'chip granted' : 'chip denied'}>{PERMISSIONS.create}</span><span className={remove ? 'chip granted' : 'chip denied'}>{PERMISSIONS.delete}</span></div>
-    {create && <CreateRecordForm />}
-    {dbUnavailable ? <div className="banner error">The app database is unavailable. Run <code>npm run db:migrate</code> with the app database role.</div> : records.length === 0 ? <p>No records yet{create ? '. Create one above.' : '.'}</p> : <table><thead><tr><th>Name</th><th>Created by</th><th>Created</th>{remove && <th>Action</th>}</tr></thead><tbody>{records.map((record) => <tr key={record.id}><td>{record.name}</td><td><code>{record.createdBy}</code></td><td>{new Date(record.createdAt).toLocaleString()}</td>{remove && <td><DeleteRecordButton id={record.id} /></td>}</tr>)}</tbody></table>}
+    <div className="banner dev">The controls stay visible for acceptance testing. Core remains the authority: each request is checked server-side and the HTTP status/message is shown here.</div>
+    <h2>Permission test controls</h2>
+    <CreateRecordForm />
+    <DeleteRecordForm />
+    {!read && <div className="banner error"><strong>403 Read denied.</strong> Core did not grant <code>{PERMISSIONS.read}</code>; the list is intentionally unavailable, but the create and delete controls remain available to test server-side denial.</div>}
+    {dbUnavailable ? <div className="banner error">The app database is unavailable. Run <code>npm run db:migrate</code> with the app database role.</div> : read && records.length === 0 ? <p>No records yet. Create one above.</p> : read && <table><thead><tr><th>Name</th><th>Created by</th><th>Created</th><th>Action</th></tr></thead><tbody>{records.map((record) => <tr key={record.id}><td>{record.name}</td><td><code>{record.createdBy}</code></td><td>{new Date(record.createdAt).toLocaleString()}</td><td><DeleteRecordButton id={record.id} /></td></tr>)}</tbody></table>}
     <p className="muted" style={{ marginTop: '1.5rem' }}>Core identity and permission data came from the Core API. This app never queries Core tables directly.</p>
   </>;
 }

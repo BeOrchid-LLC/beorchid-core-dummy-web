@@ -61,8 +61,9 @@ test.describe('authenticated acceptance', () => {
     test.skip(role !== 'viewer', 'Run this scenario with the dedicated viewer auth state.');
     await page.goto('/records');
     await expect(page.getByRole('heading', { name: 'Dummy Records' })).toBeVisible();
-    await expect(page.getByLabel('New record')).not.toBeVisible();
-    await expect(page.getByRole('button', { name: 'Delete' })).not.toBeVisible();
+    await expect(page.getByLabel('New record')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create record' })).toBeVisible();
+    await expect(page.getByLabel('Delete test by record ID')).toBeVisible();
     const response = await page.request.post('/api/records', {
       data: { name: 'viewer-bypass-attempt' },
       headers: { origin: new URL(page.url()).origin },
@@ -78,7 +79,9 @@ test.describe('authenticated acceptance', () => {
   test('no-access member receives UI and direct API denial', async ({ page }) => {
     test.skip(role !== 'no-access', 'Run this scenario with the dedicated no-access auth state.');
     await page.goto('/records');
-    await expect(page.getByText('Access denied')).toBeVisible();
+    await expect(page.getByText('403 Read denied')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create record' })).toBeVisible();
+    await expect(page.getByLabel('Delete test by record ID')).toBeVisible();
     const response = await page.request.get('/api/records');
     expect(response.status()).toBe(403);
   });

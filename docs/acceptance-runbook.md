@@ -83,6 +83,10 @@ perform these manual checks:
 - Signed-out page and API behavior return a sign-in prompt/`401`.
 - A newly signed-in but unreconciled user shows the unlinked state and cannot
   access records.
+- The records page intentionally keeps the create and delete test controls
+  visible for every resolved membership. Use the displayed HTTP status and
+  message to record both allowed and denied operations; a missing permission
+  must be denied by the API, not merely hidden by the UI.
 - Owner can create, read, and delete a record.
 - Viewer can read but receives `403` for direct create/delete attempts.
 - No-access member receives a denial and cannot reach records through crafted
