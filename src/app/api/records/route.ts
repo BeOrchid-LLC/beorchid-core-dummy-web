@@ -34,16 +34,28 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!isSameOrigin(request)) return NextResponse.json({ error: 'Cross-origin request rejected.' }, { status: 403 });
+  if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { code: 'CROSS_ORIGIN_REJECTED', error: 'This request was blocked because its origin could not be verified. Refresh the page and try again.' },
+      { status: 403 },
+    );
+  }
   const result = await resolvedContext();
   if ('response' in result) return result.response;
   if (!result.context.organization) return NextResponse.json({ error: 'An organization is required.' }, { status: 403 });
   try {
     enforce(result.context, PERMISSIONS.create);
     const contentType = request.headers.get('content-type') ?? '';
-    const body = contentType.includes('application/json') ? await request.json() as { name?: unknown } : Object.fromEntries(await (await request.formData()).entries());
+    let body: { name?: unknown };
+    try {
+      body = contentType.includes('application/json')
+        ? await request.json() as { name?: unknown }
+        : Object.fromEntries(await (await request.formData()).entries());
+    } catch {
+      return NextResponse.json({ code: 'INVALID_REQUEST_BODY', error: 'The request body could not be read. Send a record name and try again.' }, { status: 400 });
+    }
     const name = typeof body.name === 'string' ? body.name.trim() : '';
-    if (!name || name.length > 120) return NextResponse.json({ error: 'name must be between 1 and 120 characters.' }, { status: 400 });
+    if (!name || name.length > 120) return NextResponse.json({ code: 'INVALID_RECORD_NAME', error: 'Record name must be between 1 and 120 characters.' }, { status: 400 });
     const record = await createRecord(result.context.organization.id, result.context.user.id, name);
     if (contentType.includes('application/json') || request.headers.get('accept')?.includes('application/json')) return NextResponse.json({ record }, { status: 201 });
     return NextResponse.redirect(new URL('/records', request.url), { status: 303 });

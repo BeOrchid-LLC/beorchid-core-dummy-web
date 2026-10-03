@@ -5,7 +5,12 @@ import { deleteRecord } from '@/lib/db';
 import { isSameOrigin, safeDatabaseMessage } from '@/lib/request';
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (!isSameOrigin(request)) return NextResponse.json({ error: 'Cross-origin request rejected.' }, { status: 403 });
+  if (!isSameOrigin(request)) {
+    return NextResponse.json(
+      { code: 'CROSS_ORIGIN_REJECTED', error: 'This request was blocked because its origin could not be verified. Refresh the page and try again.' },
+      { status: 403 },
+    );
+  }
   try {
     const result = await currentContext();
     if (result.state === 'signed-out') return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { currentContext, safeDependencyMessage } from '@/lib/core';
 import { canCreate, canDelete, canRead, PERMISSIONS } from '@/lib/authorization';
 import { listRecords } from '@/lib/db';
+import { CreateRecordForm } from '@/app/components/create-record-form';
 import { DeleteRecordButton } from '@/app/components/delete-record-button';
 
 export default async function RecordsPage() {
@@ -21,7 +22,7 @@ export default async function RecordsPage() {
     <h1>Dummy Records</h1>
     <p className="lede">Records are stored in <code>core_dummy_web</code> and filtered by the organization ID returned by Core.</p>
     <div className="row" style={{ marginBottom: '1.5rem' }}><span className="chip granted">{PERMISSIONS.read}</span><span className={create ? 'chip granted' : 'chip denied'}>{PERMISSIONS.create}</span><span className={remove ? 'chip granted' : 'chip denied'}>{PERMISSIONS.delete}</span></div>
-    {create && <form action="/api/records" method="post" className="row" style={{ marginBottom: '1.5rem' }}><label className="muted" htmlFor="record-name">New record</label><input id="record-name" type="text" name="name" maxLength={120} placeholder="Record name" required /><button type="submit">Create record</button></form>}
+    {create && <CreateRecordForm />}
     {dbUnavailable ? <div className="banner error">The app database is unavailable. Run <code>npm run db:migrate</code> with the app database role.</div> : records.length === 0 ? <p>No records yet{create ? '. Create one above.' : '.'}</p> : <table><thead><tr><th>Name</th><th>Created by</th><th>Created</th>{remove && <th>Action</th>}</tr></thead><tbody>{records.map((record) => <tr key={record.id}><td>{record.name}</td><td><code>{record.createdBy}</code></td><td>{new Date(record.createdAt).toLocaleString()}</td>{remove && <td><DeleteRecordButton id={record.id} /></td>}</tr>)}</tbody></table>}
     <p className="muted" style={{ marginTop: '1.5rem' }}>Core identity and permission data came from the Core API. This app never queries Core tables directly.</p>
   </>;

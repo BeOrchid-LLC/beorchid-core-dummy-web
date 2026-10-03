@@ -1,8 +1,30 @@
-/** Best-effort same-origin protection for browser mutations. */
+function forwardedValue(request: Request, name: string): string | undefined {
+  return request.headers.get(name)?.split(',')[0]?.trim() || undefined;
+}
+
+function effectiveRequestOrigin(request: Request): string | null {
+  const requestUrl = new URL(request.url);
+  const host = forwardedValue(request, 'x-forwarded-host') || request.headers.get('host') || requestUrl.host;
+  const protocol = forwardedValue(request, 'x-forwarded-proto') || requestUrl.protocol.slice(0, -1);
+  if (!host || (protocol !== 'http' && protocol !== 'https')) return null;
+
+  try {
+    return new URL(`${protocol}://${host}`).origin;
+  } catch {
+    return null;
+  }
+}
+
+/** Same-origin protection for browser mutations, including trusted reverse proxies. */
 export function isSameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return true;
-  return origin === new URL(request.url).origin;
+
+  try {
+    return new URL(origin).origin === effectiveRequestOrigin(request);
+  } catch {
+    return false;
+  }
 }
 
 /** Strict CSRF protection for cookie-authenticated administrative mutations. */
@@ -10,15 +32,8 @@ export function isStrictSameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return false;
 
-  const requestUrl = new URL(request.url);
-  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim();
-  const host = forwardedHost || request.headers.get('host') || requestUrl.host;
-  const protocol = forwardedProto || requestUrl.protocol.slice(0, -1);
-  if (!host || (protocol !== 'http' && protocol !== 'https')) return false;
-
   try {
-    return new URL(origin).origin === new URL(`${protocol}://${host}`).origin;
+    return new URL(origin).origin === effectiveRequestOrigin(request);
   } catch {
     return false;
   }
