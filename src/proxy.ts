@@ -1,8 +1,10 @@
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server';
 
 function clerkConfigured(): boolean {
-  const key = process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'];
-  return typeof key === 'string' && key.startsWith('pk_');
+  const publishableKey = process.env['NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'];
+  const secretKey = process.env['CLERK_SECRET_KEY'];
+  return publishableKey?.startsWith('pk_') === true && secretKey?.startsWith('sk_') === true;
 }
 
 // API handlers perform their own authorization so they can return stable JSON
@@ -15,24 +17,16 @@ const PUBLIC_ROUTES = [
   '/api/records',
   '/api/admin/core',
 ];
-type ClerkProxy = (req: NextRequest, event: NextFetchEvent) => Promise<Response> | Response;
-let cached: ClerkProxy | null = null;
-
-async function clerkHandler(): Promise<ClerkProxy> {
-  if (cached) return cached;
-  const { clerkMiddleware, createRouteMatcher } = await import('@clerk/nextjs/server');
-  const isPublic = createRouteMatcher(
-    PUBLIC_ROUTES.map((route) => (route === '/' ? '/' : `${route}(.*)`)),
-  );
-  cached = clerkMiddleware(async (auth, request) => {
-    if (!isPublic(request)) await auth.protect();
-  }) as ClerkProxy;
-  return cached;
-}
+const isPublic = createRouteMatcher(
+  PUBLIC_ROUTES.map((route) => (route === '/' ? '/' : `${route}(.*)`)),
+);
+const handleClerk = clerkMiddleware(async (auth, request) => {
+  if (!isPublic(request)) await auth.protect();
+});
 
 export default async function proxy(request: NextRequest, event: NextFetchEvent) {
   if (!clerkConfigured()) return NextResponse.next();
-  return (await clerkHandler())(request, event);
+  return handleClerk(request, event);
 }
 
 export const config = {

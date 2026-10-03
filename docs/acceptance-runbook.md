@@ -120,6 +120,11 @@ Record:
 - any webhook/reconciliation delay;
 - unresolved infrastructure limitations.
 
+Core API runtime logs currently do not include timestamps. Correlate webhook
+events using Clerk delivery timestamps, Coolify/Traefik ingress logs, and the
+Core request order; do not treat an undated application log tail as proof that
+a webhook was or was not received.
+
 The work is not successful until all required checks pass against real Clerk and
 staging Core. Fixture mode, a successful build, or a green UI-only test is not
 enough.
